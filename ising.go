@@ -24,8 +24,12 @@ func (s *Ising) M() int {
 	return m
 }
 
-func (s *Ising) P(e float64) float64 {
-	return math.Exp((-1.0) * e / (s.Kb * s.T))
+func (s *Ising) dE(spin, H int) int {
+	return 2 * spin * H * s.J
+}
+
+func (s *Ising) P(dE float64) float64 {
+	return math.Exp((-1.0) * dE / (s.Kb * s.T))
 }
 
 func (s *Ising) H(i, j int) int {
@@ -61,8 +65,12 @@ func (s *Ising) Fill() {
 	}
 }
 
-func (s *Ising) Switch() {
+func (s *Ising) Switch(i, j int) {
+	dE := s.dE(s.Net[i][j], s.H(i, j))
 
+	if dE <= 0 || s.P(float64(dE)) > rand.Float64() {
+		s.Net[i][j] *= -1
+	}
 }
 
 func main() {
@@ -74,5 +82,4 @@ func main() {
 	}
 	s.Fill()
 	fmt.Println(s.M())
-	fmt.Println(s.H(0, 5))
 }
