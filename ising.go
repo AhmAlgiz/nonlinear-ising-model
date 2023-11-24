@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+
+	"ising/graphics"
 )
 
 type Ising struct {
@@ -32,26 +34,18 @@ func (s *Ising) P(dE float64) float64 {
 	return math.Exp((-1.0) * dE / (s.Kb * s.T))
 }
 
-func (s *Ising) H(i, j int) int {
-	if i == 0 {
-		if j == 0 {
-			return s.Net[i+1][j] + s.Net[i][j+1] + s.Net[s.N-1][j] + s.Net[i][s.N-1]
+func (s *Ising) Hi(i, j int) int {
+	return s.Net[i][(j-1+s.N)%s.N] + s.Net[i][(j+1+s.N)%s.N] + s.Net[(i-1+s.N)%s.N][j] + s.Net[(i+1+s.N)%s.N][j]
+}
+
+func (s *Ising) H() int {
+	h := 0
+	for i := 0; i < s.N; i++ {
+		for j := 0; j < s.N; j++ {
+			h += s.Net[i][j] * s.Hi(i, j)
 		}
-		if j == s.N-1 {
-			return s.Net[i][j-1] + s.Net[i+1][j] + s.Net[s.N-1][j] + s.Net[i][s.N-1]
-		}
-		return s.Net[i][j-1] + s.Net[i][j+1] + s.Net[s.N-1][j] + s.Net[i+1][j]
 	}
-	if i == s.N {
-		if j == 0 {
-			return s.Net[i-1][j] + s.Net[i][j+1] + s.Net[0][j] + s.Net[i][s.N-1]
-		}
-		if j == s.N-1 {
-			return s.Net[i-1][j] + s.Net[i][j-1] + s.Net[0][j] + s.Net[i][0]
-		}
-		return s.Net[i][j-1] + s.Net[i][j+1] + s.Net[i-1][j] + s.Net[0][j]
-	}
-	return s.Net[i][j-1] + s.Net[i][j+1] + s.Net[i-1][j] + s.Net[i+1][j]
+	return (-1) * s.J * h / 2
 }
 
 func (s *Ising) Fill() {
@@ -61,25 +55,88 @@ func (s *Ising) Fill() {
 		for j := 0; j < s.N; j++ {
 			s.Net[i][j] = rand.Intn(2)*2 - 1 // -1 or 1
 		}
-		fmt.Println(s.Net[i])
 	}
 }
 
 func (s *Ising) Switch(i, j int) {
-	dE := s.dE(s.Net[i][j], s.H(i, j))
+	dE := s.dE(s.Net[i][j], s.Hi(i, j))
 
 	if dE <= 0 || s.P(float64(dE)) > rand.Float64() {
 		s.Net[i][j] *= -1
 	}
 }
 
+func (s *Ising) Calculate(n int) (int, int) {
+	sumH := 0
+	sumM := 0
+
+	for i := 0; i < n; i++ {
+		x := rand.Intn(s.N)
+		y := rand.Intn(s.N)
+		s.Switch(x, y)
+		sumH += s.H()
+		sumM += s.M()
+	}
+
+	return sumH / n, int(math.Abs(float64(sumM / n)))
+}
+
+func (s *Ising) Print() {
+	for i := 0; i < s.N; i++ {
+		fmt.Println(s.Net[i])
+	}
+}
+
 func main() {
 	s := Ising{
-		T:  2.0,
+		T:  0,
 		J:  1,
-		Kb: 1.0,
+		Kb: 1.38,
 		N:  10,
 	}
 	s.Fill()
-	fmt.Println(s.M())
+	s.Print()
+
+	//графики
+	n := 50
+	maxT := 10.0
+	hs := make([]float64, 0, n)
+	ms := make([]float64, 0, n)
+	ts := make([]float64, 0, n)
+
+	for t := 0.0; t < maxT; t += maxT / float64(n) {
+		s.T = t
+		h, m := s.Calculate(10000)
+		hs = append(hs, float64(h))
+		ms = append(ms, float64(m))
+		ts = append(ts, t)
+	}
+
+	err := graphics.PlotGraph(ts, hs, "Динамика средней энергии от температуры")
+	if err != nil {
+		fmt.Errorf("plot error: %w", err)
+	}
+	err = graphics.PlotGraph(ts, ms, "Динамика среднего магнитного момента от температуры")
+	if err != nil {
+		fmt.Errorf("plot error: %w", err)
+	}
+
+	//решетки
+	s.T = 0.1
+	h, m := s.Calculate(10000)
+	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
+	s.Print()
+	s.T = 2.3
+	h, m = s.Calculate(10000)
+	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
+	s.Print()
+	s.T = 5
+	h, m = s.Calculate(10000)
+	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
+	s.Print()
+	s.T = 25
+	h, m = s.Calculate(10000)
+	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
+	s.Print()
+
 }
