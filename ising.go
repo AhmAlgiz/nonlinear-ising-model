@@ -114,15 +114,50 @@ func main() {
 
 	err := graphics.PlotGraph(ts, hs, "Динамика средней энергии от температуры")
 	if err != nil {
-		fmt.Errorf("plot error: %w", err)
+		fmt.Printf("plot error: %e", err)
 	}
 	err = graphics.PlotGraph(ts, ms, "Динамика среднего магнитного момента от температуры")
 	if err != nil {
-		fmt.Errorf("plot error: %w", err)
+		fmt.Printf("plot error: %e", err)
+	}
+
+	//плотности вероятности
+	n = 200
+	s.T = 0.5
+	mMap := make([]int, 0, n)
+	for i := 0; i < n; i++ {
+		_, m := s.Calculate(10000)
+		mMap = append(mMap, m)
+	}
+	err = graphics.PlotHist(mMap, 10, fmt.Sprintf("Гистограмма Abs(M) для T = %.1f", s.T), 0.0, float64(s.N^2))
+	if err != nil {
+		fmt.Printf("plot hist: %e", err)
+	}
+
+	s.T = 2.3
+	mMap = make([]int, 0, n)
+	for i := 0; i < n; i++ {
+		_, m := s.Calculate(10000)
+		mMap = append(mMap, m)
+	}
+	err = graphics.PlotHist(mMap, 9, fmt.Sprintf("Гистограмма Abs(M) для T = %.1f", s.T), 0.0, float64(s.N^2))
+	if err != nil {
+		fmt.Printf("plot hist: %e", err)
+	}
+
+	s.T = 5
+	mMap = make([]int, 0, n)
+	for i := 0; i < n; i++ {
+		_, m := s.Calculate(10000)
+		mMap = append(mMap, m)
+	}
+	err = graphics.PlotHist(mMap, 6, fmt.Sprintf("Гистограмма Abs(M) для T = %.1f", s.T), 0.0, float64(s.N^2))
+	if err != nil {
+		fmt.Printf("plot hist: %e", err)
 	}
 
 	//решетки
-	s.T = 0.1
+	s.T = 0.5
 	h, m := s.Calculate(10000)
 	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
 	s.Print()
@@ -134,9 +169,4 @@ func main() {
 	h, m = s.Calculate(10000)
 	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
 	s.Print()
-	s.T = 25
-	h, m = s.Calculate(10000)
-	fmt.Printf("\nT: %.1f, H: %d,\t|M|: %d \n", s.T, h, m)
-	s.Print()
-
 }
